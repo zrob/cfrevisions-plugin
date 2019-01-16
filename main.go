@@ -7,6 +7,7 @@ import (
 	. "github.com/zrob/cfrevisions-plugin/models"
 	. "github.com/zrob/cfrevisions-plugin/util"
 	"errors"
+	"sort"
 )
 
 type CFRevisionsPlugin struct{}
@@ -86,6 +87,10 @@ func (c *CFRevisionsPlugin) showRevisions(cliConnection plugin.CliConnection, ar
 	err = json.Unmarshal([]byte(response), &revisions)
 	FreakOut(err)
 
+	sort.Slice(revisions.Resources, func(i, j int) bool {
+		return revisions.Resources[i].Version > revisions.Resources[j].Version
+	})
+	
 	table := NewTable([]string{"version", "droplet"})
 	fmt.Printf("Displaying revisions for app %s\r\n\r\n", app)
 	for _, revision := range revisions.Resources {
