@@ -30,6 +30,13 @@ func (c *CFRevisionsPlugin) Run(cliConnection plugin.CliConnection, args []strin
 			c.showRevisionDetails(cliConnection, args)
 		}
 	}
+	if args[0] == "rollback" {
+		if len(args) != 3 {
+			fmt.Println(c.GetMetadata().Commands[2].UsageDetails.Usage)
+		} else {
+			c.rollback(cliConnection, args)
+		}
+	}
 }
 
 func (c *CFRevisionsPlugin) GetMetadata() plugin.PluginMetadata {
@@ -53,6 +60,13 @@ func (c *CFRevisionsPlugin) GetMetadata() plugin.PluginMetadata {
 				HelpText: "Display a revision's details",
 				UsageDetails: plugin.Usage{
 					Usage: "cf revision APPNAME VERSION",
+				},
+			},
+			{
+				Name:     "rollback",
+				HelpText: "Rollback to a previous revision",
+				UsageDetails: plugin.Usage{
+					Usage: "cf rollback APPNAME VERSION",
 				},
 			},
 		},
@@ -99,6 +113,44 @@ func (c *CFRevisionsPlugin) showRevisionDetails(cliConnection plugin.CliConnecti
 	fmt.Printf("Displaying revision details for revision %v of app %s\r\n\r\n", version, app)
 	fmt.Printf("version: %v\r\n", revision.Version)
 	fmt.Printf("droplet: %s\r\n", revision.Droplet.Guid)
+}
+
+func (c *CFRevisionsPlugin) rollback(cliConnection plugin.CliConnection, args []string) {
+	app := args[1]
+	version := args[2]
+
+	appGuid, err := getAppGuid(cliConnection, app)
+	FreakOut(err)
+
+	output, err := cliConnection.CliCommandWithoutTerminalOutput("curl", fmt.Sprintf("v3/apps/%s/revisions?versions=%s", appGuid, version))
+	FreakOut(err)
+	response := stringifyCurlResponse(output)
+	revisions := RevisionsModel{}
+	err = json.Unmarshal([]byte(response), &revisions)
+	FreakOut(err)
+
+	revisionGuid := revisions.Resources[0].Guid
+
+	fmt.Printf("Rolling back app %s to version %v...\r\n\r\n", app, version)
+
+	output, err = cliConnection.CliCommandWithoutTerminalOutput("curl", "v3/deployments", "-X", "POST", "-d",
+		fmt.Sprintf(`{"revision":{"guid":"%s"},"relationships":{"app":{"data":{"guid":"%s"}}}`, revisionGuid, appGuid))
+	FreakOut(err)
+	response = stringifyCurlResponse(output)
+	deployment := DeploymentModel{}
+	err = json.Unmarshal([]byte(response), &deployment)
+	FreakOut(err)
+
+	if deployment.Guid == "" {
+		errors := ErrorsModel{}
+		err = json.Unmarshal([]byte(response), &errors)
+		FreakOut(err)
+
+		fmt.Printf("Failed to initiate rollback: %s\r\n", errors.Errors[0].Detail)
+		return
+	}
+
+	fmt.Println("Succeeded. Deployment in progress.")
 }
 
 func getAppGuid(cliConnection plugin.CliConnection, app string) (appGuid string, err error) {

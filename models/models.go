@@ -21,3 +21,14 @@ type RevisionModel struct {
 type RevisionDroplet struct {
 	Guid string
 }
+
+type DeploymentModel struct {
+	Guid string
+}
+
+type ErrorsModel struct {
+	Errors []ErrorModel `json:"errors"`
+}
+type ErrorModel struct {
+	Detail string
+}
