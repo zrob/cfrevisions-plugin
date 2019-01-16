@@ -11,6 +11,7 @@ type MetadataModel struct {
 }
 
 type RevisionsModel struct {
+	Pagination `json:"pagination"`
 	Resources []RevisionModel `json:"resources"`
 }
 type RevisionModel struct {
@@ -31,4 +32,11 @@ type ErrorsModel struct {
 }
 type ErrorModel struct {
 	Detail string
+}
+
+type Pagination struct {
+	Next Link
+}
+type Link struct {
+	Href string
 }

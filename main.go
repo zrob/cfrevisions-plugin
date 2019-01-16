@@ -8,6 +8,7 @@ import (
 	. "github.com/zrob/cfrevisions-plugin/util"
 	"errors"
 	"sort"
+	"strings"
 )
 
 type CFRevisionsPlugin struct{}
@@ -80,20 +81,37 @@ func (c *CFRevisionsPlugin) showRevisions(cliConnection plugin.CliConnection, ar
 	appGuid, err := getAppGuid(cliConnection, app)
 	FreakOut(err)
 
-	output, err := cliConnection.CliCommandWithoutTerminalOutput("curl", fmt.Sprintf("v3/apps/%s/revisions", appGuid))
-	FreakOut(err)
-	response := stringifyCurlResponse(output)
-	revisions := RevisionsModel{}
-	err = json.Unmarshal([]byte(response), &revisions)
-	FreakOut(err)
+	var revisions []RevisionModel
+	morePages := true
+	url := fmt.Sprintf("v3/apps/%s/revisions", appGuid)
 
-	sort.Slice(revisions.Resources, func(i, j int) bool {
-		return revisions.Resources[i].Version > revisions.Resources[j].Version
+	for morePages {
+		output, err := cliConnection.CliCommandWithoutTerminalOutput("curl", url)
+		FreakOut(err)
+		response := stringifyCurlResponse(output)
+		revisionsPage := RevisionsModel{}
+		err = json.Unmarshal([]byte(response), &revisionsPage)
+		FreakOut(err)
+
+		if revisionsPage.Next.Href != "" {
+			p := strings.Split(revisionsPage.Next.Href, "v3")
+			url = fmt.Sprintf("v3%s", p[1])
+		} else {
+			morePages = false
+		}
+
+		for _, r := range revisionsPage.Resources {
+			revisions = append(revisions, r)
+		}
+	}
+
+	sort.Slice(revisions, func(i, j int) bool {
+		return revisions[i].Version > revisions[j].Version
 	})
-	
+
 	table := NewTable([]string{"version", "droplet"})
 	fmt.Printf("Displaying revisions for app %s\r\n\r\n", app)
-	for _, revision := range revisions.Resources {
+	for _, revision := range revisions {
 		table.Add(fmt.Sprintf("%v", revision.Version), revision.Droplet.Guid)
 	}
 	table.Print()
