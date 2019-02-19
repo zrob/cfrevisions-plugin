@@ -124,6 +124,7 @@ func (c *CFRevisionsPlugin) showRevisionDetails(cliConnection plugin.CliConnecti
 	appGuid, err := getAppGuid(cliConnection, app)
 	FreakOut(err)
 
+	// get revision
 	output, err := cliConnection.CliCommandWithoutTerminalOutput("curl", fmt.Sprintf("v3/apps/%s/revisions?versions=%s", appGuid, version))
 	FreakOut(err)
 	response := stringifyCurlResponse(output)
@@ -133,9 +134,26 @@ func (c *CFRevisionsPlugin) showRevisionDetails(cliConnection plugin.CliConnecti
 
 	revision := revisions.Resources[0]
 
+	// get revision env vars
+	output, err = cliConnection.CliCommandWithoutTerminalOutput("curl", fmt.Sprintf("v3/revisions/%s/environment_variables", revision.Guid))
+	FreakOut(err)
+	response = stringifyCurlResponse(output)
+	env := EnvVars{}
+	err = json.Unmarshal([]byte(response), &env)
+	FreakOut(err)
+
 	fmt.Printf("Displaying revision details for revision %v of app %s\r\n\r\n", version, app)
 	fmt.Printf("version: %v\r\n", revision.Version)
 	fmt.Printf("droplet: %s\r\n", revision.Droplet.Guid)
+	fmt.Println("")
+	fmt.Println("environment variables")
+	if len(env.Var) == 0 {
+		fmt.Println("none")
+	} else {
+		for k, v := range env.Var {
+			fmt.Printf("%s: %s\r\n", k, v)
+		}
+	}
 }
 
 func (c *CFRevisionsPlugin) rollback(cliConnection plugin.CliConnection, args []string) {

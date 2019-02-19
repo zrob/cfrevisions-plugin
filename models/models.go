@@ -40,3 +40,6 @@ type Pagination struct {
 type Link struct {
 	Href string
 }
+type EnvVars struct {
+	Var map[string]string
+}
