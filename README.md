@@ -13,6 +13,11 @@ resources that exist. To resolve run a normal cli command and then rerun the com
 
 ## Usage
 
+### Enable revisions for an app (since it is an experimental feature)
+```
+cf enable-revisions my-app
+```
+
 ### View all revisions
 ```
 cf revisions my-app

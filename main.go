@@ -39,6 +39,13 @@ func (c *CFRevisionsPlugin) Run(cliConnection plugin.CliConnection, args []strin
 			c.rollback(cliConnection, args)
 		}
 	}
+	if args[0] == "enable-revisions" {
+		if len(args) != 2 {
+			fmt.Println(c.GetMetadata().Commands[3].UsageDetails.Usage)
+		} else {
+			c.enableRevisions(cliConnection, args)
+		}
+	}
 }
 
 func (c *CFRevisionsPlugin) GetMetadata() plugin.PluginMetadata {
@@ -69,6 +76,13 @@ func (c *CFRevisionsPlugin) GetMetadata() plugin.PluginMetadata {
 				HelpText: "Rollback to a previous revision",
 				UsageDetails: plugin.Usage{
 					Usage: "cf rollback APPNAME VERSION",
+				},
+			},
+			{
+				Name:     "enable-revisions",
+				HelpText: "Enable an app to create and use revisions",
+				UsageDetails: plugin.Usage{
+					Usage: "cf enable-revisions APPNAME",
 				},
 			},
 		},
@@ -192,6 +206,21 @@ func (c *CFRevisionsPlugin) rollback(cliConnection plugin.CliConnection, args []
 	}
 
 	fmt.Println("Succeeded. Deployment in progress.")
+}
+
+func (c *CFRevisionsPlugin) enableRevisions(cliConnection plugin.CliConnection, args []string) {
+	app := args[1]
+
+	appGuid, err := getAppGuid(cliConnection, app)
+	FreakOut(err)
+
+	fmt.Printf("Enabling revisions for app %s\r\n", app)
+
+	_, err = cliConnection.CliCommandWithoutTerminalOutput("curl", fmt.Sprintf("v3/apps/%s/features/revisions", appGuid),
+		"-X", "PATCH", "-d", `{"enabled":true}`)
+	FreakOut(err)
+
+	fmt.Println("OK")
 }
 
 func getAppGuid(cliConnection plugin.CliConnection, app string) (appGuid string, err error) {
