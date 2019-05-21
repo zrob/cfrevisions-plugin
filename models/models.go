@@ -18,6 +18,7 @@ type RevisionModel struct {
 	Guid string
 	Version int
 	Droplet RevisionDroplet `json:"droplet"`
+	Description string
 }
 type RevisionDroplet struct {
 	Guid string

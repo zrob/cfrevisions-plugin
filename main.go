@@ -123,10 +123,10 @@ func (c *CFRevisionsPlugin) showRevisions(cliConnection plugin.CliConnection, ar
 		return revisions[i].Version > revisions[j].Version
 	})
 
-	table := NewTable([]string{"version", "droplet"})
+	table := NewTable([]string{"version", "description", "droplet"})
 	fmt.Printf("Displaying revisions for app %s\r\n\r\n", app)
 	for _, revision := range revisions {
-		table.Add(fmt.Sprintf("%v", revision.Version), revision.Droplet.Guid)
+		table.Add(fmt.Sprintf("%v", revision.Version), revision.Description, revision.Droplet.Guid)
 	}
 	table.Print()
 }
@@ -157,6 +157,7 @@ func (c *CFRevisionsPlugin) showRevisionDetails(cliConnection plugin.CliConnecti
 	FreakOut(err)
 
 	fmt.Printf("Displaying revision details for revision %v of app %s\r\n\r\n", version, app)
+	fmt.Printf("description: %v\r\n\r\n", revision.Description)
 	fmt.Printf("version: %v\r\n", revision.Version)
 	fmt.Printf("droplet: %s\r\n", revision.Droplet.Guid)
 	fmt.Println("")
